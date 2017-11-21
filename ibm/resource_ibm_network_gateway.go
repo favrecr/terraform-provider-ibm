@@ -813,7 +813,7 @@ func expandVlans(configured []interface{}) []datatypes.Network_Gateway_Vlan {
 		data := lRaw.(map[string]interface{})
 		p := &datatypes.Network_Gateway_Vlan{}
 		if v, ok := data["networkVlanID"]; ok && v.(int) != 0 {
-			p.networkVlanID = sl.Int(v.(int))
+			p.NetworkVlanId = sl.Int(v.(int))
 		}
 		if v, ok := data["bypass"]; ok {
 			p.bypass = sl.Bool(v.(bool))
@@ -825,4 +825,21 @@ func expandVlans(configured []interface{}) []datatypes.Network_Gateway_Vlan {
 		vlans = append(vlans, *p)
 	}
 	return vlans
+}
+
+func resourceIBMNetworkGatewayVlanAssociate(d *schema.ResourceData, meta interface{}) error {
+	sess := meta.(ClientSession).SoftLayerSession()
+	bypass := (d.Get("bypass")).(bool)
+	networkGatewayID := (d.Get("networkGatewayID")).(int)
+	networkVlanID := (d.Get("networkVlanID")).(int)
+
+	vlanObjectTemplate := datatypes.Network_Gateway_Vlan{
+		BypassFlag:       &bypass,
+		NetworkGatewayId: &networkGatewayID,
+		NetworkVlanId:    &networkVlanID,
+	}
+	log.Println("[INFO] Associating VLAN to Network Gateway")
+	_, _ = services.GetNetworkGatewayVlanService(sess).CreateObject(&vlanObjectTemplate)
+	return nil
+
 }
