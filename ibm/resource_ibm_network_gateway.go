@@ -220,6 +220,32 @@ func resourceIBMNetworkGateway() *schema.Resource {
 				Default:  false,
 				ForceNew: true,
 			},
+			"associated_vlans": {
+				Type:        schema.TypeSet,
+				Description: "The VLAN instances associated with this Network Gateway",
+				Optional:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"networkVlanID": {
+							Type:        schema.TypeInt,
+							Description: "The Identifier of the VLAN to be associated",
+							optional:    true,
+						},
+						"bypass": {
+							Type:        schema.TypeBool,
+							Description: "Indicates if the VLAN should be in bypass or routed modes",
+							Default:     true,
+							Optional:    true,
+						},
+						"networkGatewayID": {
+							Type:        schema.TypeInt,
+							Description: "The identifier of the Network Gateway where the VLAN should be configured",
+							Optional:    true,
+						},
+					},
+				},
+				Set: resourceIBMLBMemberHash,
+			},
 		},
 	}
 }
@@ -766,4 +792,37 @@ func waitForNetworkGatewayProvision(d *datatypes.Hardware, meta interface{}) (in
 	}
 
 	return stateConf.WaitForState()
+}
+
+func flattenVLANInstances(list []datatypes.Network_Gateway_Vlan) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		l := map[string]interface{}{
+			"bypass":           *i.bypass,
+			"networkGatewayID": *i.networkGatewayID,
+			"networkVlanID":    *i.NetworkVlanId,
+		}
+		result = append(result, l)
+	}
+	return result
+}
+
+func expandVlans(configured []interface{}) []datatypes.Network_Gateway_Vlan {
+	vlans := make([]datatypes.Network_Gateway_Vlan, 0, len(configured))
+	for _, lRaw := range configured {
+		data := lRaw.(map[string]interface{})
+		p := &datatypes.Network_Gateway_Vlan{}
+		if v, ok := data["networkVlanID"]; ok && v.(int) != 0 {
+			p.networkVlanID = sl.Int(v.(int))
+		}
+		if v, ok := data["bypass"]; ok {
+			p.bypass = sl.Bool(v.(bool))
+		}
+		if v, ok := data["networkGatewayID"]; ok && v.(int) != 0 {
+			p.networkGatewayID = sl.Bool(v.(bool))
+		}
+
+		vlans = append(vlans, *p)
+	}
+	return vlans
 }
